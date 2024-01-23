@@ -1,3 +1,26 @@
+2024-01-20  Antonio Diaz Diaz  <antonio@gnu.org>
+
+	* Version 1.14 released.
+	* minilzip.c: Reformat file diagnostics as 'PROGRAM: FILE: MESSAGE'.
+	  (show_option_error): New function showing argument and option name.
+	  (main): Make -o preserve date/mode/owner if 1 input file.
+	* lzip.h: Rename verify_* to check_*.
+	* lzlib.texi: Document the need to declare uint8_t before lzlib.h.
+	  (Reported by Michal Górny).
+	* configure, Makefile.in: New variable 'MAKEINFO'.
+	* INSTALL: Document use of CFLAGS+='--std=c99 -D_XOPEN_SOURCE=500'.
+
+2022-01-23  Antonio Diaz Diaz  <antonio@gnu.org>
+
+	* Version 1.13 released.
+	* configure: Set variables AR and ARFLAGS. (Reported by Hoël Bézier).
+	* main.c: Rename to minilzip.c.
+	* minilzip.c (getnum): Show option name and valid range if error.
+	  (check_lib): Check that LZ_API_VERSION and LZ_version_string match.
+	* Improve several descriptions in manual, '--help', and man page.
+	* lzlib.texi: Change GNU Texinfo category to 'Compression'.
+	  (Reported by Alfred M. Szmidt).
+
 2021-01-02  Antonio Diaz Diaz  <antonio@gnu.org>
 
 	* Version 1.12 released.
@@ -17,7 +40,7 @@
 	  Do not open output if input is a terminal.
 	  Replace 'decompressed', 'compressed' with 'out', 'in' in output.
 	  Set a valid invocation_name even if argc == 0.
-	* lzlib.texi: Document the new way of verifying the library version.
+	* lzlib.texi: Document the new way of checking the library version.
           Document that 'LZ_(de)compress_close' and 'LZ_(de)compress_errno'
           can be called with a null argument.
 	  Document that sync flush marker is not allowed in lzip files.
@@ -48,7 +71,7 @@
 	* main.c: Compile on DOS with DJGPP.
 	* lzlib.texi: Improve descriptions of '-0..-9', '-m', and '-s'.
 	  Document that 'LZ_(de)compress_finish' can be called repeatedly.
-	* configure: Accept appending to CFLAGS, 'CFLAGS+=OPTIONS'.
+	* configure: Accept appending to CFLAGS; 'CFLAGS+=OPTIONS'.
 	* Makefile.in: Rename targets 'install-bin*' to 'install-lib*'.
 	* Makefile.in: Targets 'install-bin*' now install minilzip.
 	* INSTALL: Document use of CFLAGS+='-D __USE_MINGW_ANSI_STDIO'.
@@ -57,6 +80,7 @@
 
 	* Version 1.10 released.
 	* LZ_compress_finish now adjusts dictionary size for each member.
+	  (Older versions can adjust dictionary size only once).
 	* lzlib.c (LZ_decompress_read): Detect corrupt header with HD=3.
 	* main.c: New option '--loose-trailing'.
 	* main.c (main): Option '-S, --volume-size' now keeps input files.
@@ -145,8 +169,8 @@
 	* encoder.h, encoder.cc: Optimize pair price calculations, reducing
 	  compression time for large values of '--match-length' by up to 6%.
 	* main.cc: New option '-F, --recompress'.
-	* Makefile.in: 'make install' no longer tries to run
-	  '/sbin/ldconfig' on systems lacking it.
+	* Makefile.in: 'make install' no longer tries to run '/sbin/ldconfig'
+	  on systems lacking it.
 
 2011-01-03  Antonio Diaz Diaz  <ant_diaz@teleline.es>
 
@@ -235,7 +259,7 @@
 	* Version 0.1 released.
 
 
-Copyright (C) 2009-2021 Antonio Diaz Diaz.
+Copyright (C) 2009-2024 Antonio Diaz Diaz.
 
 This file is a collection of facts, and thus it is not copyrightable,
 but just in case, you have unlimited permission to copy, distribute, and

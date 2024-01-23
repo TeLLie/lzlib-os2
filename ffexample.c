@@ -1,5 +1,5 @@
 /* File to file example - Test program for the library lzlib
-   Copyright (C) 2010-2021 Antonio Diaz Diaz.
+   Copyright (C) 2010-2024 Antonio Diaz Diaz.
 
    This program is free software: you have unlimited permission
    to copy, distribute, and modify it.
@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#if defined(__MSVCRT__) || defined(__OS2__) || defined(__DJGPP__)
+#if defined __MSVCRT__ || defined __OS2__ || defined __DJGPP__
 #include <fcntl.h>
 #include <io.h>
 #endif
@@ -178,9 +178,9 @@ int ffmmcompress( FILE * const infile, FILE * const outfile )
   }
 
 
-/* Compresses 'infile' to 'outfile' as a multimember stream with one member
+/* Compress 'infile' to 'outfile' as a multimember stream with one member
    for each line of text terminated by a newline character or by EOF.
-   Returns 0 if success, 1 if error.
+   Return 0 if success, 1 if error.
 */
 int fflfcompress( struct LZ_Encoder * const encoder,
                   FILE * const infile, FILE * const outfile )
@@ -219,7 +219,7 @@ int fflfcompress( struct LZ_Encoder * const encoder,
   }
 
 
-/* Decompresses 'infile' to 'outfile' with automatic resynchronization to
+/* Decompress 'infile' to 'outfile' with automatic resynchronization to
    next member in case of data error, including the automatic removal of
    leading garbage.
 */
@@ -245,7 +245,7 @@ int ffrsdecompress( struct LZ_Decoder * const decoder,
       if( LZ_decompress_errno( decoder ) == LZ_header_error ||
           LZ_decompress_errno( decoder ) == LZ_data_error )
         { LZ_decompress_sync_to_member( decoder ); continue; }
-      else break;
+      break;
       }
     len = fwrite( buffer, 1, ret, outfile );
     if( len < ret ) break;
@@ -257,7 +257,7 @@ int ffrsdecompress( struct LZ_Decoder * const decoder,
 
 int main( const int argc, const char * const argv[] )
   {
-#if defined(__MSVCRT__) || defined(__OS2__) || defined(__DJGPP__)
+#if defined __MSVCRT__ || defined __OS2__ || defined __DJGPP__
   setmode( STDIN_FILENO, O_BINARY );
   setmode( STDOUT_FILENO, O_BINARY );
 #endif
@@ -277,10 +277,10 @@ int main( const int argc, const char * const argv[] )
     { fputs( "ffexample: Not enough memory.\n", stderr );
       LZ_compress_close( encoder ); LZ_decompress_close( decoder ); return 1; }
   if( !infile )
-    { fprintf( stderr, "ffexample: Can't open input file '%s': %s\n",
+    { fprintf( stderr, "ffexample: %s: Can't open input file: %s\n",
                argv[2], strerror( errno ) ); return 1; }
   if( !outfile )
-    { fprintf( stderr, "ffexample: Can't open output file '%s': %s\n",
+    { fprintf( stderr, "ffexample: %s: Can't open output file: %s\n",
                argv[3], strerror( errno ) ); return 1; }
 
   switch( argv[1][1] )
@@ -291,7 +291,7 @@ int main( const int argc, const char * const argv[] )
     case 'm': retval = ffmmcompress( infile, outfile ); break;
     case 'l': retval = fflfcompress( encoder, infile, outfile ); break;
     case 'r': retval = ffrsdecompress( decoder, infile, outfile ); break;
-    default: show_help(); return ( argv[1][1] != 'h' );
+    default: show_help(); return argv[1][1] != 'h';
     }
 
   if( LZ_decompress_close( decoder ) < 0 || LZ_compress_close( encoder ) < 0 ||

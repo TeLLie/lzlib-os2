@@ -1,6 +1,6 @@
 #! /bin/sh
 # check script for Lzlib - Compression library for the lzip format
-# Copyright (C) 2009-2021 Antonio Diaz Diaz.
+# Copyright (C) 2009-2024 Antonio Diaz Diaz.
 #
 # This script is free software: you have unlimited permission
 # to copy, distribute, and modify it.
@@ -39,7 +39,9 @@ fox_lz="${testdir}"/fox.lz
 fail=0
 test_failed() { fail=1 ; printf " $1" ; [ -z "$2" ] || printf "($2)" ; }
 
-"${LZIP}" --check-lib				# just print warning
+"${LZIP}" --check-lib					# just print warning
+[ $? != 2 ] || { test_failed $LINENO ; exit 2 ; }	# unless bad lzlib.h
+
 printf "testing lzlib-%s..." "$2"
 
 "${LZIP}" -fkqm4 in
@@ -73,8 +75,9 @@ done
 [ ! -e out.lz ] || test_failed $LINENO
 "${LZIP}" -qf -S100k -o out in in
 [ $? = 1 ] || test_failed $LINENO
+{ [ ! -e out ] && [ ! -e out.lz ] ; } || test_failed $LINENO
 # these are for code coverage
-"${LZIP}" -cdt "${in_lz}" > out 2> /dev/null
+"${LZIP}" -cdt "${in_lz}" 2> /dev/null
 [ $? = 1 ] || test_failed $LINENO
 "${LZIP}" -t -- nx_file.lz 2> /dev/null
 [ $? = 1 ] || test_failed $LINENO
@@ -104,42 +107,46 @@ printf "\ntesting decompression..."
 
 for i in "${in_lz}" "${in_em}" "${testdir}"/test_sync.lz ; do
 	"${LZIP}" -t "$i" || test_failed $LINENO "$i"
-	"${LZIP}" -d "$i" -o copy || test_failed $LINENO "$i"
-	cmp in copy || test_failed $LINENO "$i"
-	"${LZIP}" -cd "$i" > copy || test_failed $LINENO "$i"
-	cmp in copy || test_failed $LINENO "$i"
-	"${LZIP}" -d "$i" -o - > copy || test_failed $LINENO "$i"
-	cmp in copy || test_failed $LINENO "$i"
-	"${LZIP}" -d < "$i" > copy || test_failed $LINENO "$i"
-	cmp in copy || test_failed $LINENO "$i"
-	rm -f copy || framework_failure
+	"${LZIP}" -d "$i" -o out || test_failed $LINENO "$i"
+	cmp in out || test_failed $LINENO "$i"
+	"${LZIP}" -cd "$i" > out || test_failed $LINENO "$i"
+	cmp in out || test_failed $LINENO "$i"
+	"${LZIP}" -d "$i" -o - > out || test_failed $LINENO "$i"
+	cmp in out || test_failed $LINENO "$i"
+	"${LZIP}" -d < "$i" > out || test_failed $LINENO "$i"
+	cmp in out || test_failed $LINENO "$i"
+	rm -f out || framework_failure
 done
 
-lines=$("${LZIP}" -tvv "${in_em}" 2>&1 | wc -l) || test_failed $LINENO
+lines=`"${LZIP}" -tvv "${in_em}" 2>&1 | wc -l` || test_failed $LINENO
 [ "${lines}" -eq 8 ] || test_failed $LINENO "${lines}"
 
+cat "${in_lz}" > out.lz || framework_failure
+"${LZIP}" -dk out.lz || test_failed $LINENO
+cmp in out || test_failed $LINENO
+rm -f out || framework_failure
+"${LZIP}" -cd "${fox_lz}" > fox || test_failed $LINENO
+cat fox > copy || framework_failure
 cat "${in_lz}" > copy.lz || framework_failure
-"${LZIP}" -dk copy.lz || test_failed $LINENO
-cmp in copy || test_failed $LINENO
-printf "to be overwritten" > copy || framework_failure
-"${LZIP}" -d copy.lz 2> /dev/null
+"${LZIP}" -d copy.lz out.lz 2> /dev/null	# skip copy, decompress out
 [ $? = 1 ] || test_failed $LINENO
+[ ! -e out.lz ] || test_failed $LINENO
+cmp fox copy || test_failed $LINENO
+cmp in out || test_failed $LINENO
 "${LZIP}" -df copy.lz || test_failed $LINENO
 [ ! -e copy.lz ] || test_failed $LINENO
 cmp in copy || test_failed $LINENO
+rm -f copy out || framework_failure
 
-rm -f copy || framework_failure
-cat "${in_lz}" > copy.lz || framework_failure
-"${LZIP}" -d -S100k copy.lz || test_failed $LINENO	# ignore -S
-[ ! -e copy.lz ] || test_failed $LINENO
-cmp in copy || test_failed $LINENO
+cat "${in_lz}" > out.lz || framework_failure
+"${LZIP}" -d -S100k out.lz || test_failed $LINENO	# ignore -S
+[ ! -e out.lz ] || test_failed $LINENO
+cmp in out || test_failed $LINENO
 
-printf "to be overwritten" > copy || framework_failure
-"${LZIP}" -d -o copy < "${in_lz}" 2> /dev/null
-[ $? = 1 ] || test_failed $LINENO
-"${LZIP}" -df -o copy < "${in_lz}" || test_failed $LINENO
-cmp in copy || test_failed $LINENO
-rm -f out copy || framework_failure
+printf "to be overwritten" > out || framework_failure
+"${LZIP}" -df -o out < "${in_lz}" || test_failed $LINENO
+cmp in out || test_failed $LINENO
+rm -f out || framework_failure
 "${LZIP}" -d -o ./- "${in_lz}" || test_failed $LINENO
 cmp in ./- || test_failed $LINENO
 rm -f ./- || framework_failure
@@ -148,67 +155,68 @@ cmp in ./- || test_failed $LINENO
 rm -f ./- || framework_failure
 
 cat "${in_lz}" > anyothername || framework_failure
-"${LZIP}" -dv - anyothername - < "${in_lz}" > copy 2> /dev/null ||
+"${LZIP}" -dv - anyothername - < "${in_lz}" > out 2> /dev/null ||
 	test_failed $LINENO
-cmp in copy || test_failed $LINENO
+cmp in out || test_failed $LINENO
 cmp in anyothername.out || test_failed $LINENO
-rm -f copy anyothername.out || framework_failure
+rm -f out anyothername.out || framework_failure
 
 "${LZIP}" -tq in "${in_lz}"
 [ $? = 2 ] || test_failed $LINENO
 "${LZIP}" -tq nx_file.lz "${in_lz}"
 [ $? = 1 ] || test_failed $LINENO
-"${LZIP}" -cdq in "${in_lz}" > copy
+"${LZIP}" -cdq in "${in_lz}" > out
 [ $? = 2 ] || test_failed $LINENO
-cat copy in | cmp in - || test_failed $LINENO
-"${LZIP}" -cdq nx_file.lz "${in_lz}" > copy
+cat out in | cmp in - || test_failed $LINENO		# out must be empty
+"${LZIP}" -cdq nx_file.lz "${in_lz}" > out	# skip nx_file, decompress in
 [ $? = 1 ] || test_failed $LINENO
-cmp in copy || test_failed $LINENO
-rm -f copy || framework_failure
-cat "${in_lz}" > copy.lz || framework_failure
+cmp in out || test_failed $LINENO
+rm -f out || framework_failure
+cat "${in_lz}" > out.lz || framework_failure
 for i in 1 2 3 4 5 6 7 ; do
-	printf "g" >> copy.lz || framework_failure
-	"${LZIP}" -atvvvv copy.lz "${in_lz}" 2> /dev/null
+	printf "g" >> out.lz || framework_failure
+	"${LZIP}" -atvvvv out.lz "${in_lz}" 2> /dev/null
 	[ $? = 2 ] || test_failed $LINENO $i
 done
-"${LZIP}" -dq in copy.lz
+"${LZIP}" -dq in out.lz
 [ $? = 2 ] || test_failed $LINENO
-[ -e copy.lz ] || test_failed $LINENO
-[ ! -e copy ] || test_failed $LINENO
+[ -e out.lz ] || test_failed $LINENO
+[ ! -e out ] || test_failed $LINENO
 [ ! -e in.out ] || test_failed $LINENO
-"${LZIP}" -dq nx_file.lz copy.lz
+"${LZIP}" -dq nx_file.lz out.lz
 [ $? = 1 ] || test_failed $LINENO
-[ ! -e copy.lz ] || test_failed $LINENO
+[ ! -e out.lz ] || test_failed $LINENO
 [ ! -e nx_file ] || test_failed $LINENO
-cmp in copy || test_failed $LINENO
+cmp in out || test_failed $LINENO
+rm -f out || framework_failure
 
 cat in in > in2 || framework_failure
 "${LZIP}" -t "${in_lz}" "${in_lz}" || test_failed $LINENO
-"${LZIP}" -cd "${in_lz}" "${in_lz}" -o out > copy2 || test_failed $LINENO
+"${LZIP}" -cd "${in_lz}" "${in_lz}" -o out > out2 || test_failed $LINENO
 [ ! -e out ] || test_failed $LINENO			# override -o
-cmp in2 copy2 || test_failed $LINENO
-rm -f copy2 || framework_failure
-"${LZIP}" -d "${in_lz}" "${in_lz}" -o copy2 || test_failed $LINENO
-cmp in2 copy2 || test_failed $LINENO
-rm -f copy2 || framework_failure
+cmp in2 out2 || test_failed $LINENO
+rm -f out2 || framework_failure
+"${LZIP}" -d "${in_lz}" "${in_lz}" -o out2 || test_failed $LINENO
+cmp in2 out2 || test_failed $LINENO
+rm -f out2 || framework_failure
 
-cat "${in_lz}" "${in_lz}" > copy2.lz || framework_failure
-printf "\ngarbage" >> copy2.lz || framework_failure
-"${LZIP}" -tvvvv copy2.lz 2> /dev/null || test_failed $LINENO
-"${LZIP}" -atq copy2.lz
+cat "${in_lz}" "${in_lz}" > out2.lz || framework_failure
+printf "\ngarbage" >> out2.lz || framework_failure
+"${LZIP}" -tvvvv out2.lz 2> /dev/null || test_failed $LINENO
+"${LZIP}" -atq out2.lz
 [ $? = 2 ] || test_failed $LINENO
-"${LZIP}" -atq < copy2.lz
+"${LZIP}" -atq < out2.lz
 [ $? = 2 ] || test_failed $LINENO
-"${LZIP}" -adkq copy2.lz
+"${LZIP}" -adkq out2.lz
 [ $? = 2 ] || test_failed $LINENO
-[ ! -e copy2 ] || test_failed $LINENO
-"${LZIP}" -adkq -o copy2 < copy2.lz
+[ ! -e out2 ] || test_failed $LINENO
+"${LZIP}" -adkq -o out2 < out2.lz
 [ $? = 2 ] || test_failed $LINENO
-[ ! -e copy2 ] || test_failed $LINENO
-printf "to be overwritten" > copy2 || framework_failure
-"${LZIP}" -df copy2.lz || test_failed $LINENO
-cmp in2 copy2 || test_failed $LINENO
-rm -f copy2 || framework_failure
+[ ! -e out2 ] || test_failed $LINENO
+printf "to be overwritten" > out2 || framework_failure
+"${LZIP}" -df out2.lz || test_failed $LINENO
+cmp in2 out2 || test_failed $LINENO
+rm -f out2 || framework_failure
 
 printf "\ntesting   compression..."
 
@@ -216,14 +224,16 @@ printf "\ntesting   compression..."
 [ ! -e out3.lz ] || test_failed $LINENO			# override -o and -S
 "${LZIP}" -0f in in --output=copy2.lz || test_failed $LINENO
 "${LZIP}" -d copy2.lz -o out2 || test_failed $LINENO
+[ -e copy2.lz ] || test_failed $LINENO
 cmp in2 out2 || test_failed $LINENO
 rm -f out2 copy2.lz || framework_failure
 
-"${LZIP}" -cf "${in_lz}" > out 2> /dev/null	# /dev/null is a tty on OS/2
+"${LZIP}" -cf "${in_lz}" > lzlz 2> /dev/null	# /dev/null is a tty on OS/2
 [ $? = 1 ] || test_failed $LINENO
-"${LZIP}" -Fvvm36 -o - -s16 "${in_lz}" > out 2> /dev/null || test_failed $LINENO
-"${LZIP}" -cd out | "${LZIP}" -d > copy || test_failed $LINENO
-cmp in copy || test_failed $LINENO
+"${LZIP}" -Fvvm36 -o - -s16 "${in_lz}" > lzlz 2> /dev/null || test_failed $LINENO
+"${LZIP}" -cd lzlz | "${LZIP}" -d > out || test_failed $LINENO
+cmp in out || test_failed $LINENO
+rm -f lzlz out || framework_failure
 
 "${LZIP}" -0 -o ./- in || test_failed $LINENO
 "${LZIP}" -cd ./- | cmp in - || test_failed $LINENO
@@ -235,10 +245,10 @@ rm -f ./- || framework_failure
 
 for i in s4Ki 0 1 2 3 4 5 6 7 8 9 ; do
 	"${LZIP}" -k -$i -s16 in || test_failed $LINENO $i
-	mv -f in.lz copy.lz || test_failed $LINENO $i
-	printf "garbage" >> copy.lz || framework_failure
-	"${LZIP}" -df copy.lz || test_failed $LINENO $i
-	cmp in copy || test_failed $LINENO $i
+	mv in.lz out.lz || test_failed $LINENO $i
+	printf "garbage" >> out.lz || framework_failure
+	"${LZIP}" -df out.lz || test_failed $LINENO $i
+	cmp in out || test_failed $LINENO $i
 
 	"${LZIP}" -$i -s16 in -c > out || test_failed $LINENO $i
 	"${LZIP}" -$i -s16 in -o o_out || test_failed $LINENO $i # don't add .lz
@@ -254,13 +264,13 @@ for i in s4Ki 0 1 2 3 4 5 6 7 8 9 ; do
 	cmp in copy || test_failed $LINENO $i
 
 	rm -f out.lz || framework_failure
-	printf "to be overwritten" > out || framework_failure	# don't add .lz
-	"${LZIP}" -f -$i -s16 -o out < in || test_failed $LINENO $i
+	printf "to be overwritten" > out || framework_failure
+	"${LZIP}" -f -$i -s16 -o out < in || test_failed $LINENO $i # don't add .lz
 	[ ! -e out.lz ] || test_failed $LINENO
 	"${LZIP}" -df -o copy < out || test_failed $LINENO $i
 	cmp in copy || test_failed $LINENO $i
 done
-rm -f out out.lz || framework_failure
+rm -f copy out || framework_failure
 
 cat in in in in in in in in > in8 || framework_failure
 "${LZIP}" -1s12 -S100k in8 || test_failed $LINENO
@@ -332,12 +342,12 @@ printf "\ntesting bad input..."
 
 headers='LZIp LZiP LZip LzIP LzIp LziP lZIP lZIp lZiP lzIP'
 body='\001\014\000\203\377\373\377\377\300\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000$\000\000\000\000\000\000\000'
-cat "${in_lz}" > int.lz
-printf "LZIP${body}" >> int.lz
+cat "${in_lz}" > int.lz || framework_failure
+printf "LZIP${body}" >> int.lz || framework_failure
 if "${LZIP}" -tq int.lz ; then
 	for header in ${headers} ; do
-		printf "${header}${body}" > int.lz	# first member
-		"${LZIP}" -tq int.lz
+		printf "${header}${body}" > int.lz || framework_failure
+		"${LZIP}" -tq int.lz			# first member
 		[ $? = 2 ] || test_failed $LINENO ${header}
 		"${LZIP}" -tq < int.lz
 		[ $? = 2 ] || test_failed $LINENO ${header}
@@ -349,9 +359,9 @@ if "${LZIP}" -tq int.lz ; then
 		[ $? = 2 ] || test_failed $LINENO ${header}
 		"${LZIP}" -cdq --loose-trailing int.lz > /dev/null
 		[ $? = 2 ] || test_failed $LINENO ${header}
-		cat "${in_lz}" > int.lz
-		printf "${header}${body}" >> int.lz	# trailing data
-		"${LZIP}" -tq int.lz
+		cat "${in_lz}" > int.lz || framework_failure
+		printf "${header}${body}" >> int.lz || framework_failure
+		"${LZIP}" -tq int.lz			# trailing data
 		[ $? = 2 ] || test_failed $LINENO ${header}
 		"${LZIP}" -tq < int.lz
 		[ $? = 2 ] || test_failed $LINENO ${header}
@@ -381,7 +391,6 @@ for i in fox_v2.lz fox_s11.lz fox_de20.lz \
 	[ $? = 2 ] || test_failed $LINENO $i
 done
 
-"${LZIP}" -cd "${fox_lz}" > fox || test_failed $LINENO
 for i in fox_bcrc.lz fox_crc0.lz fox_das46.lz fox_mes81.lz ; do
 	"${LZIP}" -cdq "${testdir}"/$i > out
 	[ $? = 2 ] || test_failed $LINENO $i
@@ -399,15 +408,15 @@ if dd if=in3.lz of=trunc.lz bs=14752 count=1 2> /dev/null &&
 		[ $? = 2 ] || test_failed $LINENO $i
 		"${LZIP}" -tq < trunc.lz
 		[ $? = 2 ] || test_failed $LINENO $i
-		"${LZIP}" -cdq trunc.lz > out
+		"${LZIP}" -cdq trunc.lz > /dev/null
 		[ $? = 2 ] || test_failed $LINENO $i
-		"${LZIP}" -dq < trunc.lz > out
+		"${LZIP}" -dq < trunc.lz > /dev/null
 		[ $? = 2 ] || test_failed $LINENO $i
 	done
 else
 	printf "\nwarning: skipping truncation test: 'dd' does not work on your system."
 fi
-rm -f in2.lz in3.lz trunc.lz out || framework_failure
+rm -f in2.lz in3.lz trunc.lz || framework_failure
 
 cat "${in_lz}" > ingin.lz || framework_failure
 printf "g" >> ingin.lz || framework_failure
@@ -416,19 +425,19 @@ cat "${in_lz}" >> ingin.lz || framework_failure
 [ $? = 2 ] || test_failed $LINENO
 "${LZIP}" -atq < ingin.lz
 [ $? = 2 ] || test_failed $LINENO
-"${LZIP}" -acdq ingin.lz > out
+"${LZIP}" -acdq ingin.lz > /dev/null
 [ $? = 2 ] || test_failed $LINENO
-"${LZIP}" -adq < ingin.lz > out
+"${LZIP}" -adq < ingin.lz > /dev/null
 [ $? = 2 ] || test_failed $LINENO
 "${LZIP}" -t ingin.lz || test_failed $LINENO
 "${LZIP}" -t < ingin.lz || test_failed $LINENO
-"${LZIP}" -cd ingin.lz > copy || test_failed $LINENO
-cmp in copy || test_failed $LINENO
-"${LZIP}" -d < ingin.lz > copy || test_failed $LINENO
-cmp in copy || test_failed $LINENO
+"${LZIP}" -cd ingin.lz > out || test_failed $LINENO
+cmp in out || test_failed $LINENO
+"${LZIP}" -d < ingin.lz > out || test_failed $LINENO
+cmp in out || test_failed $LINENO
 "${FFEXAMPLE}" -d ingin.lz | cmp in - || test_failed $LINENO
 "${FFEXAMPLE}" -r ingin.lz | cmp in2 - || test_failed $LINENO
-rm -f copy ingin.lz in2 out || framework_failure
+rm -f in2 out ingin.lz || framework_failure
 
 echo
 if [ ${fail} = 0 ] ; then

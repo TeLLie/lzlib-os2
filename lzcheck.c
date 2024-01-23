@@ -1,5 +1,5 @@
 /* Lzcheck - Test program for the library lzlib
-   Copyright (C) 2009-2021 Antonio Diaz Diaz.
+   Copyright (C) 2009-2024 Antonio Diaz Diaz.
 
    This program is free software: you have unlimited permission
    to copy, distribute, and modify it.
@@ -26,7 +26,7 @@
 
 
 const unsigned long long member_size = INT64_MAX;
-enum { buffer_size = 32768 };
+enum { buffer_size = 32749 };			/* largest prime < 32768 */
 uint8_t in_buffer[buffer_size];
 uint8_t mid_buffer[buffer_size];
 uint8_t out_buffer[buffer_size];
@@ -61,6 +61,7 @@ static struct LZ_Encoder * xopen_encoder( const int dictionary_size )
     }
   return encoder;
   }
+
 
 static struct LZ_Decoder * xopen_decoder( void )
   {
@@ -133,10 +134,11 @@ static void xclose_decoder( struct LZ_Decoder * const decoder,
   }
 
 
-/* Returns the next (usually newline-terminated) chunk of data from file.
+/* Return the next (usually newline-terminated) chunk of data from file.
    The size returned in *sizep is always <= buffer_size.
-   If sizep is a null pointer, rewinds the file, resets state, and returns.
-   If file is at EOF, returns an empty line. */
+   If sizep is a null pointer, rewind the file, reset state, and return.
+   If file is at EOF, return an empty line.
+*/
 static const uint8_t * next_line( FILE * const file, int * const sizep )
   {
   static int l = 0;
@@ -170,17 +172,49 @@ static int check_sync_flush( FILE * const file, const int dictionary_size )
     if( line_size <= 0 ) break;			/* end of file */
 
     in_size = LZ_compress_write( encoder, line_buf, line_size );
-    if( in_size < line_size )
-      fprintf( stderr, "lzcheck: sync: LZ_compress_write only accepted %d of %d bytes\n",
-               in_size, line_size );
-    LZ_compress_sync_flush( encoder );
-    if( line_buf[0] & 1 )	/* read all data at once or byte by byte */
-      mid_size = LZ_compress_read( encoder, mid_buffer, buffer_size );
-    else for( mid_size = 0; mid_size < buffer_size; )
+    if( in_size < 0 )
       {
-      const int rd = LZ_compress_read( encoder, mid_buffer + mid_size, 1 );
+      fprintf( stderr, "lzcheck: LZ_compress_write error: %s\n",
+               LZ_strerror( LZ_compress_errno( encoder ) ) );
+      retval = 3; break;
+      }
+    if( in_size < line_size )
+      {
+      fprintf( stderr, "lzcheck: sync: LZ_compress_write only accepted %d "
+               "of %d bytes\n", in_size, line_size );
+      mid_size = LZ_compress_read( encoder, mid_buffer, buffer_size );
+      const int wr =
+        LZ_compress_write( encoder, line_buf + in_size, line_size - in_size );
+      if( wr < 0 )
+        {
+        fprintf( stderr, "lzcheck: LZ_compress_write error: %s\n",
+                 LZ_strerror( LZ_compress_errno( encoder ) ) );
+        retval = 3; break;
+        }
+      if( wr + in_size != line_size )
+        {
+        fprintf( stderr, "lzcheck: sync: LZ_compress_write only accepted %d "
+                 "of %d remaining bytes\n", wr, line_size - in_size );
+        retval = 3; break;
+        }
+      in_size += wr;
+      LZ_compress_sync_flush( encoder );
+      const int rd = LZ_compress_read( encoder, mid_buffer + mid_size,
+                                       buffer_size - mid_size );
       if( rd > 0 ) mid_size += rd;
-      else { if( rd < 0 ) { mid_size = -1; } break; }
+      else if( rd < 0 ) mid_size = -1;
+      }
+    else
+      {
+      LZ_compress_sync_flush( encoder );
+      if( line_buf[0] & 1 )	/* read all data at once or byte by byte */
+        mid_size = LZ_compress_read( encoder, mid_buffer, buffer_size );
+      else for( mid_size = 0; mid_size < buffer_size; )
+        {
+        const int rd = LZ_compress_read( encoder, mid_buffer + mid_size, 1 );
+        if( rd > 0 ) mid_size += rd;
+        else { if( rd < 0 ) { mid_size = -1; } break; }
+        }
       }
     if( mid_size < 0 )
       {
@@ -332,7 +366,7 @@ int main( const int argc, const char * const argv[] )
 
   if( argc < 2 )
     {
-    fputs( "Usage: lzcheck filename.txt...\n", stderr );
+    fputs( "Usage: lzcheck [-m|-s] filename.txt...\n", stderr );
     return 1;
     }
 
@@ -343,7 +377,7 @@ int main( const int argc, const char * const argv[] )
     FILE * file = fopen( argv[i], "rb" );
     if( !file )
       {
-      fprintf( stderr, "lzcheck: Can't open file '%s' for reading.\n", argv[i] );
+      fprintf( stderr, "lzcheck: %s: Can't open file for reading.\n", argv[i] );
       ++open_failures; continue;
       }
     if( verbose ) fprintf( stderr, "  Testing file '%s'\n", argv[i] );
