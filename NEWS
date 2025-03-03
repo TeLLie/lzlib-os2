@@ -1,19 +1,21 @@
-Changes in version 1.14:
+Changes in version 1.15:
 
-In minilzip, file diagnostics have been reformatted as 'PROGRAM: FILE: MESSAGE'.
+Lzlib now reports a nonzero first LZMA byte as a LZ_data_error.
 
-In minilzip, diagnostics caused by invalid arguments to command-line options
-now show the argument and the name of the option.
+minilzip now exits with error status 2 if any empty member is found in a
+multimember file.
 
-The option '-o, --output' of minilzip now preserves dates, permissions, and
-ownership of the file, when (de)compressing exactly one file.
+LZ_Errno, LZ_Encoder, and LZ_Decoder are now declared in lzlib.h as typedef.
 
-It has been documented in the manual that it is the responsibility of the
-program using lzlib to include before 'lzlib.h' some header that declares
-the type 'uint8_t'. (Reported by Michal Górny).
+The targets 'lib' and 'bin' have been added to Makefile.in. 'lib' is the new
+default and builds just the library. 'bin' builds both the library and
+minilzip.
 
-The variable MAKEINFO has been added to configure and Makefile.in.
+minilzip is no longer built by default.
 
-It has been documented in INSTALL that when choosing a C standard, the POSIX
-features need to be enabled explicitly:
-  ./configure CFLAGS+='--std=c99 -D_XOPEN_SOURCE=500'
+'install-bin' installs minilzip and its man page again.
+
+To improve portability, the linker option '--soname' is now used conditionally.
+(Reported by Michael Sullivan).
+
+The use of the target 'bin' has been documented in INSTALL.

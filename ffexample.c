@@ -1,5 +1,5 @@
 /* File to file example - Test program for the library lzlib
-   Copyright (C) 2010-2024 Antonio Diaz Diaz.
+   Copyright (C) 2010-2025 Antonio Diaz Diaz.
 
    This program is free software: you have unlimited permission
    to copy, distribute, and modify it.
@@ -53,7 +53,7 @@ static void show_help( void )
   }
 
 
-int ffcompress( struct LZ_Encoder * const encoder,
+int ffcompress( LZ_Encoder * const encoder,
                 FILE * const infile, FILE * const outfile )
   {
   enum { buffer_size = 16384 };
@@ -79,7 +79,7 @@ int ffcompress( struct LZ_Encoder * const encoder,
   }
 
 
-int ffdecompress( struct LZ_Decoder * const decoder,
+int ffdecompress( LZ_Decoder * const decoder,
                   FILE * const infile, FILE * const outfile )
   {
   enum { buffer_size = 16384 };
@@ -105,8 +105,7 @@ int ffdecompress( struct LZ_Decoder * const decoder,
   }
 
 
-int ffboth( struct LZ_Encoder * const encoder,
-            struct LZ_Decoder * const decoder,
+int ffboth( LZ_Encoder * const encoder, LZ_Decoder * const decoder,
             FILE * const infile, FILE * const outfile )
   {
   enum { buffer_size = 16384 };
@@ -147,8 +146,7 @@ int ffmmcompress( FILE * const infile, FILE * const outfile )
   enum { buffer_size = 16384, member_size = 4096 };
   uint8_t buffer[buffer_size];
   bool done = false;
-  struct LZ_Encoder * const encoder =
-    LZ_compress_open( 65535, 16, member_size );
+  LZ_Encoder * const encoder = LZ_compress_open( 65535, 16, member_size );
   if( !encoder || LZ_compress_errno( encoder ) != LZ_ok  )
     { fputs( "ffexample: Not enough memory.\n", stderr );
       LZ_compress_close( encoder ); return 1; }
@@ -182,7 +180,7 @@ int ffmmcompress( FILE * const infile, FILE * const outfile )
    for each line of text terminated by a newline character or by EOF.
    Return 0 if success, 1 if error.
 */
-int fflfcompress( struct LZ_Encoder * const encoder,
+int fflfcompress( LZ_Encoder * const encoder,
                   FILE * const infile, FILE * const outfile )
   {
   enum { buffer_size = 16384 };
@@ -223,7 +221,7 @@ int fflfcompress( struct LZ_Encoder * const encoder,
    next member in case of data error, including the automatic removal of
    leading garbage.
 */
-int ffrsdecompress( struct LZ_Decoder * const decoder,
+int ffrsdecompress( LZ_Decoder * const decoder,
                     FILE * const infile, FILE * const outfile )
   {
   enum { buffer_size = 16384 };
@@ -262,11 +260,11 @@ int main( const int argc, const char * const argv[] )
   setmode( STDOUT_FILENO, O_BINARY );
 #endif
 
-  struct LZ_Encoder * const encoder = LZ_compress_open( 65535, 16, INT64_MAX );
-  struct LZ_Decoder * const decoder = LZ_decompress_open();
-  FILE * const infile = ( argc >= 3 && strcmp( argv[2], "-" ) != 0 ) ?
+  LZ_Encoder * const encoder = LZ_compress_open( 65535, 16, INT64_MAX );
+  LZ_Decoder * const decoder = LZ_decompress_open();
+  FILE * const infile = (argc >= 3 && strcmp( argv[2], "-" ) != 0) ?
                         fopen( argv[2], "rb" ) : stdin;
-  FILE * const outfile = ( argc >= 4 && strcmp( argv[3], "-" ) != 0 ) ?
+  FILE * const outfile = (argc >= 4 && strcmp( argv[3], "-" ) != 0) ?
                          fopen( argv[3], "wb" ) : stdout;
   int retval;
 

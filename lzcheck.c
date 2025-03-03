@@ -1,5 +1,5 @@
 /* Lzcheck - Test program for the library lzlib
-   Copyright (C) 2009-2024 Antonio Diaz Diaz.
+   Copyright (C) 2009-2025 Antonio Diaz Diaz.
 
    This program is free software: you have unlimited permission
    to copy, distribute, and modify it.
@@ -41,10 +41,10 @@ static void show_line( const uint8_t * const buffer, const int size )
   }
 
 
-static struct LZ_Encoder * xopen_encoder( const int dictionary_size )
+static LZ_Encoder * xopen_encoder( const int dictionary_size )
   {
   const int match_len_limit = 16;
-  struct LZ_Encoder * const encoder =
+  LZ_Encoder * const encoder =
     LZ_compress_open( dictionary_size, match_len_limit, member_size );
   if( !encoder || LZ_compress_errno( encoder ) != LZ_ok )
     {
@@ -63,9 +63,9 @@ static struct LZ_Encoder * xopen_encoder( const int dictionary_size )
   }
 
 
-static struct LZ_Decoder * xopen_decoder( void )
+static LZ_Decoder * xopen_decoder( void )
   {
-  struct LZ_Decoder * const decoder = LZ_decompress_open();
+  LZ_Decoder * const decoder = LZ_decompress_open();
   if( !decoder || LZ_decompress_errno( decoder ) != LZ_ok )
     {
     LZ_decompress_close( decoder );
@@ -76,8 +76,7 @@ static struct LZ_Decoder * xopen_decoder( void )
   }
 
 
-static void xclose_encoder( struct LZ_Encoder * const encoder,
-                            const bool finish )
+static void xclose_encoder( LZ_Encoder * const encoder, const bool finish )
   {
   if( finish )
     {
@@ -105,8 +104,7 @@ static void xclose_encoder( struct LZ_Encoder * const encoder,
   }
 
 
-static void xclose_decoder( struct LZ_Decoder * const decoder,
-                            const bool finish )
+static void xclose_decoder( LZ_Decoder * const decoder, const bool finish )
   {
   if( finish )
     {
@@ -160,8 +158,8 @@ static const uint8_t * next_line( FILE * const file, int * const sizep )
 
 static int check_sync_flush( FILE * const file, const int dictionary_size )
   {
-  struct LZ_Encoder * const encoder = xopen_encoder( dictionary_size );
-  struct LZ_Decoder * const decoder = xopen_decoder();
+  LZ_Encoder * const encoder = xopen_encoder( dictionary_size );
+  LZ_Decoder * const decoder = xopen_decoder();
   int retval = 0;
 
   while( retval <= 1 )			/* test LZ_compress_sync_flush */
@@ -267,8 +265,8 @@ static int check_sync_flush( FILE * const file, const int dictionary_size )
 */
 static int check_members( FILE * const file, const int dictionary_size )
   {
-  struct LZ_Encoder * const encoder = xopen_encoder( dictionary_size );
-  struct LZ_Decoder * const decoder = xopen_decoder();
+  LZ_Encoder * const encoder = xopen_encoder( dictionary_size );
+  LZ_Decoder * const decoder = xopen_decoder();
   int retval = 0;
 
   while( retval <= 1 )			/* test LZ_compress_restart_member */
@@ -362,7 +360,7 @@ int main( const int argc, const char * const argv[] )
     ( strcmp( argv[1], "-m" ) == 0 || strcmp( argv[1], "-s" ) == 0 ) ) ?
     argv[1][1] : 0;
   const int first = opt ? 2 : 1;
-  const bool verbose = ( opt != 0 || argc > first + 1 );
+  const bool verbose = opt != 0 || argc > first + 1;
 
   if( argc < 2 )
     {

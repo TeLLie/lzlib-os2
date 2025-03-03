@@ -1,5 +1,5 @@
 /* Buffer to buffer example - Test program for the library lzlib
-   Copyright (C) 2010-2024 Antonio Diaz Diaz.
+   Copyright (C) 2010-2025 Antonio Diaz Diaz.
 
    This program is free software: you have unlimited permission
    to copy, distribute, and modify it.
@@ -53,7 +53,7 @@ uint8_t * read_file( const char * const name, long * const file_sizep )
       fprintf( stderr, "bbexample: %s: Input file is too large.\n", name );
       free( buffer ); fclose( f ); return 0;
       }
-    buffer_size = ( buffer_size <= LONG_MAX / 2 ) ? 2 * buffer_size : LONG_MAX;
+    buffer_size = (buffer_size <= LONG_MAX / 2) ? 2 * buffer_size : LONG_MAX;
     tmp = (uint8_t *)realloc( buffer, buffer_size );
     if( !tmp )
       { fputs( "bbexample: read_file: Not enough memory.\n", stderr );
@@ -81,14 +81,14 @@ uint8_t * read_file( const char * const name, long * const file_sizep )
 uint8_t * bbcompressl( const uint8_t * const inbuf, const long insize,
                        const int level, long * const outlenp )
   {
-  struct Lzma_options
+  typedef struct Lzma_options
     {
     int dictionary_size;		/* 4 KiB .. 512 MiB */
     int match_len_limit;		/* 5 .. 273 */
-    };
+    } Lzma_options;
   /* Mapping from gzip/bzip2 style 0..9 compression levels to the
      corresponding LZMA compression parameters. */
-  const struct Lzma_options option_mapping[] =
+  const Lzma_options option_mapping[] =
     {
     {   65535,  16 },		/* -0 (65535,16 chooses fast encoder) */
     { 1 << 20,   5 },		/* -1 */
@@ -100,10 +100,10 @@ uint8_t * bbcompressl( const uint8_t * const inbuf, const long insize,
     { 1 << 24,  68 },		/* -7 */
     { 3 << 23, 132 },		/* -8 */
     { 1 << 25, 273 } };		/* -9 */
-  struct Lzma_options encoder_options;
-  struct LZ_Encoder * encoder;
+  Lzma_options encoder_options;
+  LZ_Encoder * encoder;
   uint8_t * outbuf;
-  const long delta_size = ( insize / 4 ) + 64;	/* insize may be zero */
+  const long delta_size = insize / 4 + 64;	/* insize may be zero */
   long outsize = delta_size;			/* initial outsize */
   long inpos = 0;
   long outpos = 0;
@@ -160,7 +160,7 @@ uint8_t * bbcompressl( const uint8_t * const inbuf, const long insize,
 uint8_t * bbdecompressl( const uint8_t * const inbuf, const long insize,
                          long * const outlenp )
   {
-  struct LZ_Decoder * const decoder = LZ_decompress_open();
+  LZ_Decoder * const decoder = LZ_decompress_open();
   const long delta_size = insize;		/* insize must be > zero */
   long outsize = delta_size;			/* initial outsize */
   uint8_t * outbuf = (uint8_t *)malloc( outsize );
@@ -242,7 +242,7 @@ bool bbcompress( const uint8_t * const inbuf, const int insize,
   {
   int inpos = 0, outpos = 0;
   bool error = false;
-  struct LZ_Encoder * const encoder =
+  LZ_Encoder * const encoder =
     LZ_compress_open( dictionary_size, match_len_limit, INT64_MAX );
   if( !encoder || LZ_compress_errno( encoder ) != LZ_ok )
     { LZ_compress_close( encoder ); return false; }
@@ -278,7 +278,7 @@ bool bbdecompress( const uint8_t * const inbuf, const int insize,
   {
   int inpos = 0, outpos = 0;
   bool error = false;
-  struct LZ_Decoder * const decoder = LZ_decompress_open();
+  LZ_Decoder * const decoder = LZ_decompress_open();
   if( !decoder || LZ_decompress_errno( decoder ) != LZ_ok )
     { LZ_decompress_close( decoder ); return false; }
 
@@ -340,7 +340,7 @@ int main( const int argc, const char * const argv[] )
   {
   int retval = 0, i;
   int open_failures = 0;
-  const bool verbose = ( argc > 2 );
+  const bool verbose = argc > 2;
 
   if( argc < 2 )
     {
